@@ -25,7 +25,7 @@ const App = () => {
       dispatch({type: 'TAG_REGISTERED', tagId: event[0]}),
     );
     // Just Log the power  status.
-    // Should add better logic based on your application
+    // Should add logic based on your application
     const powerMonitor = powerListener(event =>
       console.log('POWER STATUS: ', event),
     );
