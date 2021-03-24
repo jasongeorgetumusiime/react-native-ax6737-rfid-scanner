@@ -1,7 +1,11 @@
-dist
+AX6737RfidScannerExample/
+coverage/
+.travis.yml
 package-lock.json
-yarn.lock
-.history/
+
+#################
+# from .gitignore:
+################
 
 ############
 # Node
