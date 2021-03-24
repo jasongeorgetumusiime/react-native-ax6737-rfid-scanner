@@ -1,6 +1,6 @@
 AX6737RfidScannerExample/
-coverage/
 .travis.yml
+yarn.lock
 package-lock.json
 
 #################
