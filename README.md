@@ -9,9 +9,5 @@
 `$ react-native link react-native-ax6737-rfid-scanner`
 
 ## Usage
-```javascript
-import Ax6737RfidScanner from 'react-native-ax6737-rfid-scanner';
 
-// TODO: What to do with the module?
-Ax6737RfidScanner;
-```
+A simple Example application can be found in the [AX6737RfidScannerExample]() code. 
