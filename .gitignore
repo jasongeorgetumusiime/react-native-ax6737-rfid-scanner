@@ -171,6 +171,11 @@ android/captures/
 # Intellij
 *.iml
 
+# Eclipse
+.classpath
+.project
+**/.settings/
+
 # Keystore files
 *.jks
 
