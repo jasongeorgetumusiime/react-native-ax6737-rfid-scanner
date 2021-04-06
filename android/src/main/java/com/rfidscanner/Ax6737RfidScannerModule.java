@@ -40,6 +40,9 @@ public class Ax6737RfidScannerModule extends ReactContextBaseJavaModule implemen
     private boolean isStart = false;
     private String epc;
 
+    private boolean isSoftPaused = false;
+    private boolean inSingleScanMode = false;
+
     private List<String> scannedTags = new ArrayList<String>();
 
     public Ax6737RfidScannerModule(ReactApplicationContext reactContext) {
@@ -97,15 +100,28 @@ public class Ax6737RfidScannerModule extends ReactContextBaseJavaModule implemen
                         list1 = uhfrManager.tagInventoryByTimer((short) 50);
                     }
 
-                    if (list1 != null && list1.size() > 0) {
+                    if (list1 != null && list1.size() > 0 && !isSoftPaused) {
                         for (Reader.TAGINFO tfs : list1) {
                             byte[] epcdata = tfs.EpcId;
                             epc = Tools.Bytes2HexString(epcdata, epcdata.length);
                             int rssi = tfs.RSSI;
                             Log.d("ISSH", epc);
-                            scannedTags.add(epc);
-                            String[] tagData = { epc, String.valueOf(rssi) };
-                            sendEvent("UHF_TAG", Ax6737RfidScannerModule.convertArrayToWritableArray(tagData));
+                            if (!scannedTags.contains(epc)) {
+                                scannedTags.add(epc);
+                                String[] tagData = { epc, String.valueOf(rssi) };
+                                sendEvent("UHF_TAG", Ax6737RfidScannerModule.convertArrayToWritableArray(tagData));
+
+                                if (inSingleScanMode) {
+                                    // Need to move this to utility method
+                                    isSoftPaused = true; // Refactor: There should be a better way to this
+                                    try {
+                                        Thread.sleep(1000);
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }
+
                         }
                     }
                 }

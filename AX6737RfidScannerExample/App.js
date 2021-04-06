@@ -1,7 +1,11 @@
 import React, {useEffect, useReducer} from 'react';
 import TagsScreen from './src/screens/TagsScreen';
 
-import {powerListener, tagListener} from 'react-native-ax6737-rfid-scanner';
+import {
+  powerListener,
+  tagListener,
+  clearTags,
+} from 'react-native-ax6737-rfid-scanner';
 
 const updateTagData = (tagId, tags) => {
   tags.has(tagId) ? tags.set(tagId, tags.get(tagId) + 1) : tags.set(tagId, 1);
@@ -21,9 +25,10 @@ const App = () => {
   const [state, dispatch] = useReducer(reducer, {tags: new Map()});
 
   useEffect(() => {
-    const tagMonitor = tagListener(event =>
-      dispatch({type: 'TAG_REGISTERED', tagId: event[0]}),
-    );
+    const tagMonitor = tagListener(event => {
+      console.log('TAG DATA: ', event[0]);
+      dispatch({type: 'TAG_REGISTERED', tagId: event[0]});
+    });
     // Just Log the power  status.
     // Should add logic based on your application
     const powerMonitor = powerListener(event =>
@@ -36,6 +41,6 @@ const App = () => {
     };
   }, []);
 
-  return <TagsScreen tagData={state.tags} />;
+  return <TagsScreen tagData={state.tags} reset={clearTags} />;
 };
 export default App;

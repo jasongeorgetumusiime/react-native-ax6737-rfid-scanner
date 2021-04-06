@@ -1,9 +1,9 @@
 import React from 'react';
-import {ScrollView, StyleSheet, Text, View} from 'react-native';
+import {ScrollView, StyleSheet, Text, View, Button} from 'react-native';
 
 import Header from '../components/Header';
 
-const TagsScreen = ({tagData}) => {
+const TagsScreen = ({tagData, reset}) => {
   return (
     <View style={styles.screen}>
       <Header title="RFID Tag List" />
@@ -13,13 +13,16 @@ const TagsScreen = ({tagData}) => {
           <Text style={{color: 'white'}}> # REGISTRATIONS </Text>
         </View>
         <ScrollView>
-          {Array.from(tagData.keys()).map((key) => (
+          {Array.from(tagData.keys()).map(key => (
             <View key={key} style={styles.tagItem}>
               <Text> {key} </Text>
               <Text> {tagData.get(key)} </Text>
             </View>
           ))}
         </ScrollView>
+      </View>
+      <View>
+        <Button title="Reset" onPress={() => reset()} />
       </View>
     </View>
   );
