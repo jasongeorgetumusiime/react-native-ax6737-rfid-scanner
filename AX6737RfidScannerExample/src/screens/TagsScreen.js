@@ -3,7 +3,7 @@ import {ScrollView, StyleSheet, Text, View, Button} from 'react-native';
 
 import Header from '../components/Header';
 
-const TagsScreen = ({tagData, reset}) => {
+const TagsScreen = ({tagData, reset, triggerScan}) => {
   return (
     <View style={styles.screen}>
       <Header title="RFID Tag List" />
@@ -23,6 +23,10 @@ const TagsScreen = ({tagData, reset}) => {
       </View>
       <View>
         <Button title="Reset" onPress={() => reset()} />
+      </View>
+
+      <View>
+        <Button title="Scan Single Tag" onPress={() => triggerScan()} />
       </View>
     </View>
   );

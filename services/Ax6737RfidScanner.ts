@@ -4,12 +4,15 @@ const { Ax6737RfidScanner } = NativeModules;
 
 const eventEmitter = new NativeEventEmitter(Ax6737RfidScanner);
 
-export const powerListener = (listener: any) =>
+const powerListener = (listener: any) =>
   eventEmitter.addListener('UHF_POWER', listener);
 
-export const tagListener = (listener: any) =>
+const tagListener = (listener: any) =>
   eventEmitter.addListener('UHF_TAG', listener);
 
-export const clearTags = () => Ax6737RfidScanner.clearTags();
-
-export default {  testModule: Ax6737RfidScanner.ping };
+export default {
+  powerListener,
+  tagListener,
+  clearTags: Ax6737RfidScanner.clearTags,
+  readSingleTag: Ax6737RfidScanner.readSingleTag,
+ };

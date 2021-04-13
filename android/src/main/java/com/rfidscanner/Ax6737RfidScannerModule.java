@@ -23,10 +23,15 @@ import com.handheld.uhfr.UHFRManager;
 import com.uhf.api.cls.Reader;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import com.facebook.react.bridge.Callback;
+import com.facebook.react.bridge.Promise;
 
 public class Ax6737RfidScannerModule extends ReactContextBaseJavaModule implements LifecycleEventListener {
+
+    private static final String UHF_READER_READ_ERROR = "UHF_READER_READ_ERROR";
+    private static final int MAX_SINGLE_SCAN_RETRIES = 10;
 
     private final ReactApplicationContext reactContext;
     private static UHFRManager uhfrManager;
@@ -41,7 +46,6 @@ public class Ax6737RfidScannerModule extends ReactContextBaseJavaModule implemen
     private String epc;
 
     private boolean isSoftPaused = false;
-    private boolean inSingleScanMode = false;
 
     private List<String> scannedTags = new ArrayList<String>();
 
@@ -60,14 +64,66 @@ public class Ax6737RfidScannerModule extends ReactContextBaseJavaModule implemen
     }
 
     @ReactMethod
-    public void ping(String stringArgument, int numberArgument, Callback callback) {
-        // TODO: Implement some actually useful functionality
-        callback.invoke("PONG --> Received numberArgument: " + numberArgument + " stringArgument: " + stringArgument);
-    }
-
-    @ReactMethod
     public void clearTags() {
         scannedTags.clear();
+    }
+
+    private List<String> extractTagData(Reader.TAGINFO tfs) {
+        byte[] epcdata = tfs.EpcId;
+        epc = Tools.Bytes2HexString(epcdata, epcdata.length);
+        int rssi = tfs.RSSI;
+        Log.d("ISSH", epc);
+        epc = Tools.Bytes2HexString(epcdata, epcdata.length);
+        return Arrays.asList(epc, String.valueOf(rssi));
+    }
+
+    /*
+     * This function is a hack for triggering a Single Scan.
+     * 
+     * A Much better solution would be to synchronize with the invetoryTask thread
+     * to avoid race conditions and competition for the scanning resource, that is
+     * uhfrManager.
+     * 
+     * TODO: uhfrManager.tagInventoryByTimer((short) 50) always crashes the
+     * application when isMulti == true.
+     * 
+     * TODO: Find a way of making singleScan mode work without retries. For now it
+     * works under a minimun of 2 retries and observed maximum of about 5 - 7
+     * retries
+     */
+    @ReactMethod
+    public void readSingleTag(Promise promise) {
+        this.isSoftPaused = true;
+
+        if (isStart) {
+
+            boolean hasScannedTag = false;
+            int tries = 0;
+            List<Reader.TAGINFO> list1 = null;
+
+            while (!hasScannedTag && tries < MAX_SINGLE_SCAN_RETRIES) {
+                if (isMulti) {
+                    list1 = uhfrManager.tagInventoryRealTime();
+                } else {
+                    list1 = uhfrManager.tagInventoryByTimer((short) 50);
+                }
+                tries++;
+                if (list1 != null && list1.size() > 0) {
+                    hasScannedTag = true;
+                }
+            }
+
+            if (hasScannedTag) {
+                Reader.TAGINFO tfs = list1.get(0);
+                // TODO: Consider using a map to store tagData
+                List<String> tagData = extractTagData(tfs);
+                promise.resolve(convertArrayToWritableArray((String[]) tagData.toArray()));
+            } else {
+                promise.reject(UHF_READER_READ_ERROR, "READ FAILED");
+            }
+        }
+
+        this.isSoftPaused = false;
     }
 
     private void sendEvent(String eventName, WritableArray array) {
@@ -92,7 +148,7 @@ public class Ax6737RfidScannerModule extends ReactContextBaseJavaModule implemen
         @Override
         public void run() {
             while (isRunning) {
-                if (isStart) {
+                if (isStart && !isSoftPaused) {
                     List<Reader.TAGINFO> list1;
                     if (isMulti) {
                         list1 = uhfrManager.tagInventoryRealTime();
@@ -100,28 +156,15 @@ public class Ax6737RfidScannerModule extends ReactContextBaseJavaModule implemen
                         list1 = uhfrManager.tagInventoryByTimer((short) 50);
                     }
 
-                    if (list1 != null && list1.size() > 0 && !isSoftPaused) {
+                    if (list1 != null && list1.size() > 0) {
                         for (Reader.TAGINFO tfs : list1) {
-                            byte[] epcdata = tfs.EpcId;
-                            epc = Tools.Bytes2HexString(epcdata, epcdata.length);
-                            int rssi = tfs.RSSI;
-                            Log.d("ISSH", epc);
-                            if (!scannedTags.contains(epc)) {
-                                scannedTags.add(epc);
-                                String[] tagData = { epc, String.valueOf(rssi) };
-                                sendEvent("UHF_TAG", Ax6737RfidScannerModule.convertArrayToWritableArray(tagData));
-
-                                if (inSingleScanMode) {
-                                    // Need to move this to utility method
-                                    isSoftPaused = true; // Refactor: There should be a better way to this
-                                    try {
-                                        Thread.sleep(1000);
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                    }
-                                }
+                            List<String> tagData = extractTagData(tfs);
+                            // TODO: Consider using a map to store tagData
+                            if (!scannedTags.contains(tagData.get(0))) {
+                                scannedTags.add(tagData.get(0));
+                                sendEvent("UHF_TAG", Ax6737RfidScannerModule
+                                        .convertArrayToWritableArray((String[]) tagData.toArray()));
                             }
-
                         }
                     }
                 }
