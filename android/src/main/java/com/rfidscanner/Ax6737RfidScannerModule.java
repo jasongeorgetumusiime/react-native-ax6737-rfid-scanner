@@ -31,7 +31,7 @@ import com.facebook.react.bridge.Promise;
 public class Ax6737RfidScannerModule extends ReactContextBaseJavaModule implements LifecycleEventListener {
 
     private static final String UHF_READER_READ_ERROR = "UHF_READER_READ_ERROR";
-    private static final int MAX_SINGLE_SCAN_RETRIES = 10;
+    private static final int MAX_SINGLE_SCAN_RETRIES = 50;
 
     private final ReactApplicationContext reactContext;
     private static UHFRManager uhfrManager;
@@ -64,6 +64,11 @@ public class Ax6737RfidScannerModule extends ReactContextBaseJavaModule implemen
     }
 
     @ReactMethod
+    public void initializeDevice() {
+        this.uhfrManager = UHFRManager.getInstance();
+    }
+
+    @ReactMethod
     public void clearTags() {
         scannedTags.clear();
     }
@@ -75,6 +80,43 @@ public class Ax6737RfidScannerModule extends ReactContextBaseJavaModule implemen
         Log.d("ISSH", epc);
         epc = Tools.Bytes2HexString(epcdata, epcdata.length);
         return Arrays.asList(epc, String.valueOf(rssi));
+    }
+
+    @ReactMethod
+    // public void startReadingTags() {
+    public void startReadingTags(final Callback callback) {
+        if (!isStart) {
+            uhfrManager.setCancleInventoryFilter();
+            isRunning = true;
+            if (isMulti) {
+                uhfrManager.setFastMode();
+                uhfrManager.asyncStartReading();
+            } else {
+                uhfrManager.setCancleFastMode();
+            }
+            new Thread(inventoryTask).start();
+            callback.invoke(isStart = true);
+        }
+    }
+
+    @ReactMethod
+    // public void stopReadingTags() {
+    public void stopReadingTags(final Callback callback) {
+        if (isMulti) {
+            uhfrManager.asyncStopReading();
+        } else {
+            uhfrManager.stopTagInventory();
+        }
+
+        try {
+            Thread.sleep(100);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        isRunning = false;
+        isStart = false;
+        callback.invoke(scannedTags.size());
     }
 
     /*
@@ -236,7 +278,6 @@ public class Ax6737RfidScannerModule extends ReactContextBaseJavaModule implemen
 
     @Override
     public void onHostResume() {
-        uhfrManager = UHFRManager.getInstance();
         if (uhfrManager != null) {
             uhfrManager.setPower(33, 33);
             uhfrManager.setRegion(Reader.Region_Conf.RG_EU3);

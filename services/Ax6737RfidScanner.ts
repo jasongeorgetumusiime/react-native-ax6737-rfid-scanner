@@ -15,4 +15,7 @@ export default {
   tagListener,
   clearTags: Ax6737RfidScanner.clearTags,
   readSingleTag: Ax6737RfidScanner.readSingleTag,
+  initializeReader: Ax6737RfidScanner.initializeDevice,
+  startReadingTags: Ax6737RfidScanner.startReadingTags,
+  stopReadingTags: Ax6737RfidScanner.stopReadingTags,
  };
